@@ -22,6 +22,11 @@
           <layers-plus :size="18" class="icon"></layers-plus>
           {{ $t('apps.add_new') }}
         </button>
+        <!-- Detect installed Steam games -->
+        <button class="btn btn-outline-primary" @click="showSteamDetectModal">
+          <gamepad-2 :size="18" class="icon"></gamepad-2>
+          {{ $t('apps.detect_steam') }}
+        </button>
       </div>
       <!-- Right side actions -->
       <div class="d-flex align-items-center gap-2" v-if="apps && apps.length > 0">
@@ -466,6 +471,61 @@
       </div>
     </div>
 
+    <!-- Steam detection modal -->
+    <div class="modal fade" ref="steamDetectModal" tabindex="-1" aria-labelledby="steamDetectModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-scrollable modal-fullscreen-md-down">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="steamDetectModalLabel">{{ $t('apps.detect_steam_title') }}</h5>
+            <button type="button" class="btn-close" @click="closeSteamDetectModal" :aria-label="$t('_common.close')"></button>
+          </div>
+          <div class="modal-body">
+            <p class="text-muted">{{ $t('apps.detect_steam_desc') }}</p>
+            <div v-if="steamDetecting" class="text-center py-4">
+              <output class="spinner-border spinner-border-sm me-2"></output>
+              {{ $t('apps.detect_steam_scanning') }}
+            </div>
+            <div v-else-if="steamDetectError" class="alert alert-danger">{{ steamDetectError }}</div>
+            <div v-else-if="steamCandidates.length === 0" class="alert alert-secondary">
+              {{ $t('apps.detect_steam_none_found') }}
+            </div>
+            <template v-else>
+              <div class="form-check mb-2">
+                <input class="form-check-input" type="checkbox" id="steamSelectAll"
+                       :checked="allSteamSelected" @change="toggleAllSteamSelected($event.target.checked)" />
+                <label class="form-check-label" for="steamSelectAll">{{ $t('apps.detect_steam_select_all') }}</label>
+              </div>
+              <div class="list-group">
+                <label v-for="candidate in steamCandidates" :key="candidate.appId"
+                       class="list-group-item d-flex align-items-center gap-2"
+                       :class="{ disabled: candidate.alreadyAdded }">
+                  <input class="form-check-input mt-0" type="checkbox"
+                         v-model="candidate.selected" :disabled="candidate.alreadyAdded" />
+                  <span class="flex-grow-1">
+                    {{ candidate.name }}
+                    <span v-if="candidate.alreadyAdded" class="badge text-bg-secondary ms-2">
+                      {{ $t('apps.detect_steam_already_added') }}
+                    </span>
+                  </span>
+                </label>
+              </div>
+            </template>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" @click="closeSteamDetectModal">
+              <x :size="16" class="icon me-1"></x>
+              {{ $t('_common.cancel') }}
+            </button>
+            <button type="button" class="btn btn-primary" :disabled="steamImporting || !steamCandidates.some(c => c.selected && !c.alreadyAdded)"
+                    @click="importSelectedSteamGames">
+              <save :size="16" class="icon me-1"></save>
+              {{ $t('apps.detect_steam_import') }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Delete confirmation modal -->
     <div class="modal fade" ref="deleteModal" tabindex="-1" aria-labelledby="appDeleteModalLabel" aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered">
@@ -582,6 +642,7 @@
     Folder,
     FolderOpen,
     FolderUp,
+    Gamepad2,
     HardDrive,
     LayersPlus,
     Play,
@@ -609,6 +670,7 @@
       Folder,
       FolderOpen,
       FolderUp,
+      Gamepad2,
       HardDrive,
       LayersPlus,
       Play,
@@ -646,9 +708,17 @@
         deleteTarget: null,
         version: null,
         githubVersion: null,
+        steamDetecting: false,
+        steamImporting: false,
+        steamDetectError: "",
+        steamCandidates: [],
       };
     },
     computed: {
+      allSteamSelected() {
+        const selectable = this.steamCandidates.filter(c => !c.alreadyAdded);
+        return selectable.length > 0 && selectable.every(c => c.selected);
+      },
       installedVersionNotStable() {
         if (!this.githubVersion || !this.version) {
           return false;
@@ -986,6 +1056,65 @@
         this.browseFor('executable', 'file_browser.select_executable', current, (path) => {
           this.editForm.detached[index] = path;
         });
+      },
+      showSteamDetectModal() {
+        this.steamDetectError = "";
+        this.steamCandidates = [];
+        this.showStacked(this.$refs.steamDetectModal);
+        this.detectSteamGames();
+      },
+      closeSteamDetectModal() {
+        const modal = Modal.getInstance(this.$refs.steamDetectModal);
+        if (modal) modal.hide();
+      },
+      detectSteamGames() {
+        this.steamDetecting = true;
+        const existingCmds = new Set(this.apps.map(app => app.cmd));
+        fetch("./api/apps/detect-steam")
+          .then((r) => r.ok ? r.json() : r.json().then(e => { throw new Error(e.error || 'Detection failed'); }))
+          .then((r) => {
+            this.steamCandidates = (r.apps || []).map(app => ({
+              name: app.name,
+              cmd: app.cmd,
+              appId: app["app-id"],
+              alreadyAdded: existingCmds.has(app.cmd),
+              selected: !existingCmds.has(app.cmd),
+            }));
+          })
+          .catch((e) => { this.steamDetectError = this.$t('apps.detect_steam_error') + (e.message ? `: ${e.message}` : ''); })
+          .finally(() => { this.steamDetecting = false; });
+      },
+      toggleAllSteamSelected(checked) {
+        this.steamCandidates.forEach(c => {
+          if (!c.alreadyAdded) c.selected = checked;
+        });
+      },
+      importSelectedSteamGames() {
+        const toImport = this.steamCandidates.filter(c => c.selected && !c.alreadyAdded);
+        if (toImport.length === 0) return;
+
+        this.steamImporting = true;
+        Promise.all(toImport.map(candidate => apiFetch("./api/apps", {
+          method: "POST",
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            name: candidate.name,
+            cmd: candidate.cmd,
+            output: "",
+            index: -1,
+            "exclude-global-prep-cmd": false,
+            "auto-detach": true,
+            "wait-all": true,
+            "exit-timeout": 5,
+            "prep-cmd": [],
+            detached: [],
+            "image-path": "",
+          }),
+        })))
+          .then(() => document.location.reload())
+          .finally(() => { this.steamImporting = false; });
       },
       save() {
         this.editForm["image-path"] = this.editForm["image-path"].toString().replace(/"/g, '');
