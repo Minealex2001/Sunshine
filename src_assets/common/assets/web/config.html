@@ -13,6 +13,71 @@
       <p>{{ $t('config.configuration_desc') }}</p>
     </div>
 
+    <!-- First-run setup wizard -->
+    <div class="modal fade" ref="wizardModal" tabindex="-1" aria-labelledby="wizardModalLabel" aria-hidden="true"
+         data-bs-backdrop="static" data-bs-keyboard="false">
+      <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="wizardModalLabel">{{ $t('config.wizard_title') }}</h5>
+            <button type="button" class="btn-close" @click="skipWizard" :aria-label="$t('_common.close')"></button>
+          </div>
+          <div class="modal-body">
+            <div class="progress mb-4" style="height: 6px;">
+              <div class="progress-bar" role="progressbar" :style="{ width: (wizardStep / wizardTotalSteps * 100) + '%' }"></div>
+            </div>
+
+            <!-- Step 1: Encoder / Capture -->
+            <div v-if="wizardStep === 1">
+              <h5>{{ $t('config.wizard_step1_title') }}</h5>
+              <p class="text-muted">{{ $t('config.wizard_step1_desc') }}</p>
+              <p>{{ $t('config.wizard_step1_hint') }}</p>
+              <button type="button" class="btn btn-outline-primary" @click="jumpToTab('advanced')">
+                {{ $t('config.wizard_step1_action') }}
+              </button>
+            </div>
+
+            <!-- Step 2: Audio/Video quality -->
+            <div v-if="wizardStep === 2">
+              <h5>{{ $t('config.wizard_step2_title') }}</h5>
+              <p class="text-muted">{{ $t('config.wizard_step2_desc') }}</p>
+              <p>{{ $t('config.wizard_step2_hint') }}</p>
+              <button type="button" class="btn btn-outline-primary" @click="jumpToTab('av')">
+                {{ $t('config.wizard_step2_action') }}
+              </button>
+            </div>
+
+            <!-- Step 3: Apps -->
+            <div v-if="wizardStep === 3">
+              <h5>{{ $t('config.wizard_step3_title') }}</h5>
+              <p class="text-muted">{{ $t('config.wizard_step3_desc') }}</p>
+              <p>{{ $t('config.wizard_step3_hint') }}</p>
+              <a href="./apps.html" class="btn btn-outline-primary">
+                {{ $t('config.wizard_step3_action') }}
+              </a>
+            </div>
+          </div>
+          <div class="modal-footer justify-content-between">
+            <button type="button" class="btn btn-link text-muted" @click="skipWizard">
+              {{ $t('config.wizard_skip') }}
+            </button>
+            <div class="d-flex gap-2">
+              <button type="button" class="btn btn-secondary" v-if="wizardStep > 1" @click="wizardStep--">
+                {{ $t('config.wizard_back') }}
+              </button>
+              <button type="button" class="btn btn-primary" v-if="wizardStep < wizardTotalSteps"
+                      @click="wizardStep++">
+                {{ $t('config.wizard_next') }}
+              </button>
+              <button type="button" class="btn btn-success" v-else @click="finishWizard">
+                {{ $t('config.wizard_finish') }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Search Bar with Autocomplete -->
     <div class="toolbar mb-3 d-flex flex-wrap align-items-center gap-3">
       <div class="input-group config-search">
@@ -54,6 +119,19 @@
               </a>
             </li>
           </ul>
+          <template v-if="advancedTabs.length">
+            <div class="config-nav-heading">{{ $t('config.advanced_settings') }}</div>
+            <ul class="nav config-nav-list">
+              <li class="nav-item" v-for="tab in advancedTabs" :key="tab.id">
+                <a class="nav-link" :class="{'active': tab.id === currentTab}" href="#"
+                  @click="currentTab = tab.id">
+                  <component :is="getTabIcon(tab.id)" :size="18" class="icon"></component>
+                  {{tab.name}}
+                </a>
+              </li>
+            </ul>
+          </template>
+
           <template v-if="encoderTabs.length">
             <div class="config-nav-heading">{{ $t('config.encoders') }}</div>
             <ul class="nav config-nav-list">
@@ -157,6 +235,7 @@
   import AudioVideo from './configs/tabs/AudioVideo.vue'
   import ContainerEncoders from './configs/tabs/ContainerEncoders.vue'
   import {$tp, usePlatformI18n} from './platform-i18n'
+  import { Modal } from 'bootstrap/dist/js/bootstrap'
   import {
     Check,
     Cpu,
@@ -205,6 +284,8 @@
         config: null,
         currentTab: "general",
         searchQuery: "",
+        wizardStep: 1,
+        wizardTotalSteps: 3,
         tabs: [ // TODO: Move the options to each Component instead, encapsulate.
           {
             id: "general",
@@ -390,7 +471,10 @@
     },
     computed: {
       generalTabs() {
-        return this.tabs.filter(tab => !ENCODER_TAB_IDS.has(tab.id));
+        return this.tabs.filter(tab => !ENCODER_TAB_IDS.has(tab.id) && tab.id !== "advanced");
+      },
+      advancedTabs() {
+        return this.tabs.filter(tab => tab.id === "advanced");
       },
       encoderTabs() {
         return this.tabs.filter(tab => ENCODER_TAB_IDS.has(tab.id));
@@ -466,9 +550,42 @@
               }
             });
           });
+
+          this.maybeShowWizard();
         });
     },
     methods: {
+      maybeShowWizard() {
+        let completed = false;
+        try {
+          completed = localStorage.getItem('sunshine_wizard_completed') === 'true';
+        } catch (e) {
+          // localStorage may be unavailable (e.g. private browsing); just skip the wizard.
+          completed = true;
+        }
+        if (completed) return;
+
+        this.wizardStep = 1;
+        this.$nextTick(() => {
+          Modal.getOrCreateInstance(this.$refs.wizardModal).show();
+        });
+      },
+      jumpToTab(tabId) {
+        this.currentTab = tabId;
+        this.finishWizard();
+      },
+      skipWizard() {
+        this.finishWizard();
+      },
+      finishWizard() {
+        try {
+          localStorage.setItem('sunshine_wizard_completed', 'true');
+        } catch (e) {
+          // Ignore storage failures; the wizard will simply reappear next visit.
+        }
+        const modal = Modal.getInstance(this.$refs.wizardModal);
+        if (modal) modal.hide();
+      },
       getTabIcon(tabId) {
         const iconMap = {
           'general': 'Settings',

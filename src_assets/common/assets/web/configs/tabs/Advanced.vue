@@ -13,27 +13,6 @@ const config = ref(props.config)
 
 <template>
   <div class="config-page">
-    <!-- FEC Percentage -->
-    <div class="mb-3">
-      <label for="fec_percentage" class="form-label">{{ $t('config.fec_percentage') }}</label>
-      <input type="text" class="form-control" id="fec_percentage" placeholder="20" v-model="config.fec_percentage" />
-      <div class="form-text">{{ $t('config.fec_percentage_desc') }}</div>
-    </div>
-
-    <!-- Quantization Parameter -->
-    <div class="mb-3">
-      <label for="qp" class="form-label">{{ $t('config.qp') }}</label>
-      <input type="number" class="form-control" id="qp" placeholder="28" v-model="config.qp" />
-      <div class="form-text">{{ $t('config.qp_desc') }}</div>
-    </div>
-
-    <!-- Min Threads -->
-    <div class="mb-3">
-      <label for="min_threads" class="form-label">{{ $t('config.min_threads') }}</label>
-      <input type="number" class="form-control" id="min_threads" placeholder="2" min="1" v-model="config.min_threads" />
-      <div class="form-text">{{ $t('config.min_threads_desc') }}</div>
-    </div>
-
     <!-- HEVC Support -->
     <div class="mb-3">
       <label for="hevc_mode" class="form-label">{{ $t('config.hevc_mode') }}</label>
@@ -113,6 +92,42 @@ const config = ref(props.config)
         <option value="software">{{ $t('config.encoder_software') }}</option>
       </select>
       <div class="form-text">{{ $t('config.encoder_desc') }}</div>
+    </div>
+
+    <!-- Performance tuning -->
+    <div class="mb-3 accordion">
+      <div class="accordion-item">
+        <h2 class="accordion-header">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                  data-bs-target="#advancedPerformanceCollapse">
+            {{ $t('config.performance_tuning') }}
+          </button>
+        </h2>
+        <div id="advancedPerformanceCollapse" class="accordion-collapse collapse">
+          <div class="accordion-body">
+            <!-- FEC Percentage -->
+            <div class="mb-3">
+              <label for="fec_percentage" class="form-label">{{ $t('config.fec_percentage') }}</label>
+              <input type="text" class="form-control" id="fec_percentage" placeholder="20" v-model="config.fec_percentage" />
+              <div class="form-text">{{ $t('config.fec_percentage_desc') }}</div>
+            </div>
+
+            <!-- Quantization Parameter -->
+            <div class="mb-3">
+              <label for="qp" class="form-label">{{ $t('config.qp') }}</label>
+              <input type="number" class="form-control" id="qp" placeholder="28" v-model="config.qp" />
+              <div class="form-text">{{ $t('config.qp_desc') }}</div>
+            </div>
+
+            <!-- Min Threads -->
+            <div class="mb-3">
+              <label for="min_threads" class="form-label">{{ $t('config.min_threads') }}</label>
+              <input type="number" class="form-control" id="min_threads" placeholder="2" min="1" v-model="config.min_threads" />
+              <div class="form-text">{{ $t('config.min_threads_desc') }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
   </div>
