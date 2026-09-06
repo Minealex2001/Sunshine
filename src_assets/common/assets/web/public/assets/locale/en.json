@@ -117,6 +117,8 @@
   },
   "config": {
     "adapter_name": "Adapter Name",
+    "advanced_settings": "Advanced Settings",
+    "advanced_settings_desc": "These settings are for advanced use cases. The defaults work for most setups.",
     "adapter_name_desc_linux_1": "Manually specify a GPU to use for capture.",
     "adapter_name_desc_linux_2": "to find all devices capable of VAAPI",
     "adapter_name_desc_linux_3": "Replace ``renderD129`` with the device from above to lists the name and capabilities of the device. To be supported by Sunshine, it needs to have at the very minimum:",

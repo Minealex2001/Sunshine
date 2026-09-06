@@ -37,13 +37,6 @@ const effectivePort = computed(() => +config.value?.port ?? defaultMoonlightPort
       <div class="form-text">{{ $t('config.address_family_desc') }}</div>
     </div>
 
-    <!-- Bind address -->
-    <div class="mb-3">
-      <label for="bind_address" class="form-label">{{ $t('config.bind_address') }}</label>
-      <input type="text" class="form-control" id="bind_address" v-model="config.bind_address" />
-      <div class="form-text">{{ $t('config.bind_address_desc') }}</div>
-    </div>
-
     <!-- Port family -->
     <div class="mb-3">
       <label for="port" class="form-label">{{ $t('config.port') }}</label>
@@ -127,57 +120,79 @@ const effectivePort = computed(() => +config.value?.port ?? defaultMoonlightPort
       <div class="form-text">{{ $t('config.origin_web_ui_allowed_desc') }}</div>
     </div>
 
-    <!-- CSRF Allowed Origins -->
-    <div class="mb-3">
-      <label for="csrf_allowed_origins" class="form-label">{{ $t('config.csrf_allowed_origins') }}</label>
-      <input type="text"
-             class="form-control"
-             id="csrf_allowed_origins"
-             v-model="config.csrf_allowed_origins" />
-      <div class="form-text">{{ $t('config.csrf_allowed_origins_desc') }}</div>
-    </div>
+    <!-- Advanced network settings -->
+    <div class="mb-3 accordion">
+      <div class="accordion-item">
+        <h2 class="accordion-header">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                  data-bs-target="#networkAdvancedCollapse">
+            {{ $t('config.advanced_settings') }}
+          </button>
+        </h2>
+        <div id="networkAdvancedCollapse" class="accordion-collapse collapse">
+          <div class="accordion-body">
+            <!-- Bind address -->
+            <div class="mb-3">
+              <label for="bind_address" class="form-label">{{ $t('config.bind_address') }}</label>
+              <input type="text" class="form-control" id="bind_address" v-model="config.bind_address" />
+              <div class="form-text">{{ $t('config.bind_address_desc') }}</div>
+            </div>
 
-    <!-- External IP -->
-    <div class="mb-3">
-      <label for="external_ip" class="form-label">{{ $t('config.external_ip') }}</label>
-      <input type="text" class="form-control" id="external_ip" placeholder="123.456.789.12" v-model="config.external_ip" />
-      <div class="form-text">{{ $t('config.external_ip_desc') }}</div>
-    </div>
+            <!-- CSRF Allowed Origins -->
+            <div class="mb-3">
+              <label for="csrf_allowed_origins" class="form-label">{{ $t('config.csrf_allowed_origins') }}</label>
+              <input type="text"
+                     class="form-control"
+                     id="csrf_allowed_origins"
+                     v-model="config.csrf_allowed_origins" />
+              <div class="form-text">{{ $t('config.csrf_allowed_origins_desc') }}</div>
+            </div>
 
-    <!-- LAN Encryption Mode -->
-    <div class="mb-3">
-      <label for="lan_encryption_mode" class="form-label">{{ $t('config.lan_encryption_mode') }}</label>
-      <select id="lan_encryption_mode" class="form-select" v-model="config.lan_encryption_mode">
-        <option value="0">{{ $t('_common.disabled_def') }}</option>
-        <option value="1">{{ $t('config.lan_encryption_mode_1') }}</option>
-        <option value="2">{{ $t('config.lan_encryption_mode_2') }}</option>
-      </select>
-      <div class="form-text">{{ $t('config.lan_encryption_mode_desc') }}</div>
-    </div>
+            <!-- External IP -->
+            <div class="mb-3">
+              <label for="external_ip" class="form-label">{{ $t('config.external_ip') }}</label>
+              <input type="text" class="form-control" id="external_ip" placeholder="123.456.789.12" v-model="config.external_ip" />
+              <div class="form-text">{{ $t('config.external_ip_desc') }}</div>
+            </div>
 
-    <!-- WAN Encryption Mode -->
-    <div class="mb-3">
-      <label for="wan_encryption_mode" class="form-label">{{ $t('config.wan_encryption_mode') }}</label>
-      <select id="wan_encryption_mode" class="form-select" v-model="config.wan_encryption_mode">
-        <option value="0">{{ $t('_common.disabled') }}</option>
-        <option value="1">{{ $t('config.wan_encryption_mode_1') }}</option>
-        <option value="2">{{ $t('config.wan_encryption_mode_2') }}</option>
-      </select>
-      <div class="form-text">{{ $t('config.wan_encryption_mode_desc') }}</div>
-    </div>
+            <!-- LAN Encryption Mode -->
+            <div class="mb-3">
+              <label for="lan_encryption_mode" class="form-label">{{ $t('config.lan_encryption_mode') }}</label>
+              <select id="lan_encryption_mode" class="form-select" v-model="config.lan_encryption_mode">
+                <option value="0">{{ $t('_common.disabled_def') }}</option>
+                <option value="1">{{ $t('config.lan_encryption_mode_1') }}</option>
+                <option value="2">{{ $t('config.lan_encryption_mode_2') }}</option>
+              </select>
+              <div class="form-text">{{ $t('config.lan_encryption_mode_desc') }}</div>
+            </div>
 
-    <!-- Ping Timeout -->
-    <div class="mb-3">
-      <label for="ping_timeout" class="form-label">{{ $t('config.ping_timeout') }}</label>
-      <input type="text" class="form-control" id="ping_timeout" placeholder="10000" v-model="config.ping_timeout" />
-      <div class="form-text">{{ $t('config.ping_timeout_desc') }}</div>
-    </div>
+            <!-- WAN Encryption Mode -->
+            <div class="mb-3">
+              <label for="wan_encryption_mode" class="form-label">{{ $t('config.wan_encryption_mode') }}</label>
+              <select id="wan_encryption_mode" class="form-select" v-model="config.wan_encryption_mode">
+                <option value="0">{{ $t('_common.disabled') }}</option>
+                <option value="1">{{ $t('config.wan_encryption_mode_1') }}</option>
+                <option value="2">{{ $t('config.wan_encryption_mode_2') }}</option>
+              </select>
+              <div class="form-text">{{ $t('config.wan_encryption_mode_desc') }}</div>
+            </div>
 
-    <!-- Packet Size Limit -->
-    <div class="mb-3">
-      <label for="packetsize" class="form-label">{{ $t('config.packetsize') }}</label>
-      <input type="number" min="0" max="65535" class="form-control" id="packetsize" placeholder="0" v-model="config.packetsize" />
-      <div class="form-text">{{ $t('config.packetsize_desc') }}</div>
+            <!-- Ping Timeout -->
+            <div class="mb-3">
+              <label for="ping_timeout" class="form-label">{{ $t('config.ping_timeout') }}</label>
+              <input type="text" class="form-control" id="ping_timeout" placeholder="10000" v-model="config.ping_timeout" />
+              <div class="form-text">{{ $t('config.ping_timeout_desc') }}</div>
+            </div>
+
+            <!-- Packet Size Limit -->
+            <div class="mb-3">
+              <label for="packetsize" class="form-label">{{ $t('config.packetsize') }}</label>
+              <input type="number" min="0" max="65535" class="form-control" id="packetsize" placeholder="0" v-model="config.packetsize" />
+              <div class="form-text">{{ $t('config.packetsize_desc') }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
   </div>
