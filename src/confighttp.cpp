@@ -50,6 +50,7 @@
 #include "platform/common.h"
 #include "process.h"
 #include "rtsp.h"
+#include "steam_detection.h"
 #include "system_tray.h"
 #include "utility.h"
 #include "uuid.h"
@@ -1038,6 +1039,44 @@ namespace confighttp {
       send_response(response, file_tree);
     } catch (std::exception &e) {
       BOOST_LOG(warning) << "GetApps: "sv << e.what();
+      bad_request(response, request, e.what());
+    }
+  }
+
+  /**
+   * @brief Scan the local Steam installation and return the games it finds. Detected games are
+   * not written to `apps.json` -- the caller (the web UI) is expected to let the user pick which
+   * ones to add via the existing `POST /api/apps` endpoint.
+   * @param response The HTTP response object.
+   * @param request The HTTP request object.
+   *
+   * @api_examples{/api/apps/detect-steam| GET| null}
+   */
+  void detectSteamApps(const resp_https_t &response, const req_https_t &request) {
+    if (!authenticate(response, request)) {
+      return;
+    }
+
+    print_req(request);
+
+    try {
+      nlohmann::json output_tree;
+      nlohmann::json apps_array = nlohmann::json::array();
+
+      for (const auto &app : steam_detection::detect_installed_games()) {
+        nlohmann::json app_json;
+        app_json["name"] = app.name;
+        app_json["cmd"] = app.cmd;
+        app_json["app-id"] = app.app_id;
+        app_json["install-dir"] = app.install_dir;
+        apps_array.push_back(std::move(app_json));
+      }
+
+      output_tree["status"] = true;
+      output_tree["apps"] = apps_array;
+      send_response(response, output_tree);
+    } catch (std::exception &e) {
+      BOOST_LOG(warning) << "DetectSteamApps: "sv << e.what();
       bad_request(response, request, e.what());
     }
   }
@@ -2280,6 +2319,7 @@ namespace confighttp {
     // rest api
     server.resource["^/api/browse$"]["GET"] = browseDirectory;
     server.resource["^/api/apps$"]["GET"] = getApps;
+    server.resource["^/api/apps/detect-steam$"]["GET"] = detectSteamApps;
     server.resource["^/api/apps$"]["POST"] = saveApp;
     server.resource["^/api/apps/([0-9]+)$"]["DELETE"] = deleteApp;
     server.resource["^/api/apps/close$"]["POST"] = closeApp;
